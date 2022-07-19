@@ -1,31 +1,25 @@
 use iced::pure::{button, column};
 use iced_lazy::pure::{self, Component};
-use iced_native::text;
 use iced_pure::Element;
-use std::marker::PhantomData;
 
-pub fn collapse<
-    'a,
-    Message: 'a,
-    T: Into<Message> + Clone + 'a,
-    Renderer: text::Renderer + 'static,
-    H: Fn() -> Element<'a, T, Renderer> + 'a,
-    C: Fn() -> Element<'a, T, Renderer> + 'a,
->(
-    header: H,
-    content: C,
-) -> impl Into<Element<'a, Message, Renderer>> {
+pub fn collapse<'a, Message, Renderer>(
+    header: impl Fn() -> Element<'a, Message, Renderer> + 'a,
+    content: impl Fn() -> Element<'a, Message, Renderer> + 'a,
+) -> Element<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: iced_native::Renderer + 'static,
+{
     Collapse {
-        header,
-        content,
-        phantom: PhantomData,
+        header: Box::new(header),
+        content: Box::new(content),
     }
+    .into()
 }
 
-struct Collapse<'a, H, C> {
-    header: H,
-    content: C,
-    phantom: PhantomData<&'a H>,
+struct Collapse<'a, Message, Renderer> {
+    header: Box<dyn Fn() -> Element<'a, Message, Renderer> + 'a>,
+    content: Box<dyn Fn() -> Element<'a, Message, Renderer> + 'a>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -34,19 +28,17 @@ enum Event<T> {
     Collapse(bool),
 }
 
-impl<'a, Message, Renderer, T, H, C> Component<Message, Renderer> for Collapse<'a, H, C>
+impl<'a, Message, Renderer> Component<Message, Renderer> for Collapse<'a, Message, Renderer>
 where
-    T: Into<Message> + Clone + 'a,
-    H: Fn() -> Element<'a, T, Renderer>,
-    C: Fn() -> Element<'a, T, Renderer>,
-    Renderer: text::Renderer + 'static,
+    Message: Clone + 'a,
+    Renderer: iced_native::Renderer + 'static,
 {
     type State = bool;
-    type Event = Event<T>;
+    type Event = Event<Message>;
 
-    fn update(&mut self, state: &mut Self::State, event: Event<T>) -> Option<Message> {
+    fn update(&mut self, state: &mut Self::State, event: Event<Message>) -> Option<Message> {
         match event {
-            Event::Internal(e) => Some(e.into()),
+            Event::Internal(e) => Some(e),
             Event::Collapse(s) => {
                 *state = s;
                 None
@@ -67,17 +59,12 @@ where
         }
     }
 }
-
-impl<'a, Message, Renderer, T, H: 'a, C: 'a> From<Collapse<'a, H, C>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Collapse<'a, Message, Renderer>> for Element<'a, Message, Renderer>
 where
-    Message: 'a,
-    Renderer: 'static + text::Renderer,
-    T: Into<Message> + Clone + 'a,
-    H: Fn() -> Element<'a, T, Renderer>,
-    C: Fn() -> Element<'a, T, Renderer>,
+    Message: Clone + 'a,
+    Renderer: iced_native::Renderer + 'static,
 {
-    fn from(c: Collapse<'a, H, C>) -> Self {
-        pure::component(c).into()
+    fn from(c: Collapse<'a, Message, Renderer>) -> Self {
+        pure::component(c)
     }
 }

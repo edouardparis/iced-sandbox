@@ -64,7 +64,7 @@ impl Sandbox for Counter {
                     .push(text(self.value.to_string()).size(50))
                     .push(button("Decrement").on_press(Message::DecrementPressed)),
             )
-            .push(collapse::<_, Message, _, _, _>(
+            .push(collapse(
                 || text(format!("{} events", self.events.len())).into(),
                 || {
                     self.events
